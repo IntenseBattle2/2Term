@@ -19,7 +19,6 @@
 //You can contact the authors of this program at either <ib2member01@gmail.com> or <ib2member02@gmail.com>
 
 function print(s){
-  alert(typeof s);
   if(typeof s != "string"){ console.error("print: passed argument is not a string.");return -1;}
   document.body.innerHTML+=s;
 }
