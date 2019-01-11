@@ -1,62 +1,64 @@
 //readline.c - implements readline()
 //Copyright (C)2018-2019 Intense Battle 2
 /*
- * Insert GNU GPL here
+ * Insert GNU GPL text here -- THIS MUST BE DONE NEXT
 */
 
-//These vars store data for readLine. They're
-// not local static vars because we want other
-// functions to see them.
+//These vars store data for readLine(). They're not local static vars because we want other functions to see them.
 
-/*First, since it's needed to build values, the flags.
- * These are used to define the type of instruction
- * parsed by the interpreter. These dictate how the
- * numbers in InstructionIdentifiers are chosen. The
- * flags are defined with ambiguity to allow them to
- * fit the descriptions of a large range of different
+/*First, since it's needed to build values, the flags. These are used to define the type of instruction
+ * parsed by the interpreter. These dictate how the numbers in InstructionIdentifiers are chosen. The
+ * flags are defined with ambiguity to allow them to fit the descriptions of a large range of different
  * instruction types. 
  * 
- * Tatoeba, a func call is standard code, instructs,
- * deals with existance (grabs an existing resource),
- * is an operation, is one piece, has args
- * (for >Terminal_, the possibility is enough),
- * contains a resource (it references a resource name),
- * and is complete in its normal form. So, 0x00 is a
+ * Tatoeba, a func call is standard code, instructs, deals with existance (grabs an existing resource),
+ * is an operation, is one piece, has args (for >Terminal_, the possibility is enough), contains a resource
+ * (it references a resource name), and is complete in its normal form. So, 0x00 is a
  * func call.
- *
- * Some specific data here for dictating which flags
- * are used when:
- *  creates data  - instruction of existance
- *  destroys data - manipulation of existance
- *  assigns data  - instruction of value
- *  edits data    - manipulation of value
- *  if more actions are required, it is incomplete. 
- *   Tatoeba, declarations are incomplete because
- *   even though they make the variable, it doesn't
- *   have any data to give it, so it needs to be
- *   followed up with a definition. 
+ * 
+ * Some specific data here for dictating which flags are used in specific cases:
+ *  creates data    - instruction of existance
+ *  destroys data   - manipulation of existance
+ *  loads/&c data   - instruction of value, references, singular
+ *  edits data      - manipulation of value
+ *  deals w/ funcs  - has arguments
+ *  declaration     - singular, incomplete, standalone
+ *  
+ *  if more actions are required, it is incomplete. Tatoeba, declarations are incomplete because even though they make the
+ *   variable, it doesn't have any data to give it, so it needs to be followed up with a definition. 
 */
 enum InterpreterFlags {
   standardCode = 0, preprocessorCode = 1,
-  instruction  = 0, manipulation     = 2,
-  existance    = 0, value            = 4,
+  loadRefEtc   = 0, storeCreateEtc   = 2,
+  variable     = 0, function         = 4,
   asOperation  = 0, asCondition      = 8,
+  
+  /*
+   * Currently changing flags; current setup doesn't work at all. Current leftovers:
+  
   singlePiece  = 0, multiPiece       = 16,
   hasArgs      = 0, noArgs           = 32,
   reference    = 0, standAlone       = 64,
   complete     = 0, incomplete       = 128
+  
+  *Extra note: flags are (very loosely) based off how assembly code works
+*/
 };
 
 //Then, the flag results
 enum InstructionIdentifiers {
   /*
    * TODO: Sort alphabetically, then mark as such
+   * AND: Fix all of these to the new flag system
   */
+  //std, ref, func, asOp
   callFunction        = 0x00, //00000000
-  //std, inst, exist, asOp, sing, noArgs, alone, incom
+  //std, create, variable, asOp
   declareData         = 0x07, //00000111
-  //std, inst, exist, asOp, sing, 
-  declareFunction     = 0x09, //00001001
+  //std0, inst0, exist0, asOp0, sing0, hasArgs0, alone1, incom1
+  declareFunction     = 0x03, //00000011
+  //std0, manip1, value1, asOp0, sing0, noArgs1, alone1, 
+  //forced: edits data (manip, value, sing, ref), 
   defineData          = 0x0D, //00101100
   defineFunction      = 0x08, //00001000
   includeFile         = 0x85, //10000101
