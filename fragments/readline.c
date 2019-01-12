@@ -27,11 +27,21 @@
  *  if more actions are required, it is incomplete. Tatoeba, declarations are incomplete because even though they make the
  *   variable, it doesn't have any data to give it, so it needs to be followed up with a definition. 
 */
+const char* keywords[32] = {
+  "auto",     "break",    "case",     "char",
+  "const",    "continue", "default",  "do",
+  "double",   "else",     "enum",     "extern",
+  "float",    "for",      "goto",     "if",
+  "int",      "long",     "register", "return",
+  "short",    "signed",   "sizeof",   "static",
+  "struct",   "switch",   "typedef",  "union",
+  "unsigned", "void",     "volatile", "while"  };
+
+
 enum InterpreterFlags {
   standardCode = 0, preprocessorCode = 1,
   loadRefEtc   = 0, storeCreateEtc   = 2,
   variable     = 0, function         = 4,
-  asOperation  = 0, asCondition      = 8,
   
   /*
    * Currently changing flags; current setup doesn't work at all. Current leftovers:
@@ -53,14 +63,15 @@ enum InstructionIdentifiers {
   */
   //std, ref, func, asOp
   callFunction        = 0x00, //00000000
-  //std, create, variable, asOp
+  //std, create, variable
   declareData         = 0x07, //00000111
-  //std0, inst0, exist0, asOp0, sing0, hasArgs0, alone1, incom1
+  //std, create, function
   declareFunction     = 0x03, //00000011
-  //std0, manip1, value1, asOp0, sing0, noArgs1, alone1, 
-  //forced: edits data (manip, value, sing, ref), 
+  //std, store, variable
   defineData          = 0x0D, //00101100
+  //std, store, function
   defineFunction      = 0x08, //00001000
+  //pre, 
   includeFile         = 0x85, //10000101
   createMacroVariable = 0x8D, //10001101
   createMacroFunction = 0x89, //10001001
@@ -80,25 +91,24 @@ struct InterpreterResults {
    * TODO: Fill according to needed data
    *       KEEP AMBIGUOUS
  */
+ 
+//Internal var for skipping whitespace
+static long skipWhiteSpace(const char* line, long i){
+  while(line[i] == ' ') i++;
+  return i;
+}
+
 struct InterpreterResults readLine(const char* line){
-  struct InterpreterResults res;
   enum InterpreterFlags flags;
-  long i,j;
+  enum ScanningFlags scan;
+  long i = skipWhiteSpace(line, i), j = i;
   char tmp[999];
-  //Get rid of trailing whitespace
-  while(line[i]==" ") i++;
-  if(line[i]=="#")    flags = preprocessorCode;
-  
+ 
+  //Check if preprocessor code
+  if(line[i] == '#'){
+    flags = preProcessorCode;
+    i     = skipWhiteSpace(line, i+1);
+  }
+ 
   for(i=i; i<sizeof(line); i++){
-    if(line[i]==0x0A || line[i]==0x0D){//CR|LF test
-      //end of line, finalize
-      if(flags==0 && res.name==""){
-        //No data collected; empty string
-        strcpy(res.name, "null");
-        return res;
-      }
-      /*
-       * TODO: Add remaining finalization code
-      */
-    }
-    
+    if
