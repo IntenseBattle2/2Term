@@ -37,6 +37,105 @@ const char* keywords[32] = {
   "struct",   "switch",   "typedef",  "union",
   "unsigned", "void",     "volatile", "while"  };
 
+const char* preProcInstructions[11] = {
+  "define", "include", "undef", "ifdef",
+  "ifndef", "if",      "else",  "elif",
+  "endif",  "error",   "pragma"         };
+
+struct Macro {
+  char name[999],
+  struct Variable args[999] //999 max args. NOTE: default struct setup, `void nul`, means "not a function macro" AS LONG AS args[0] IS THIS
+  char value[999,999] //[line,char]; 999 lines of 999 chars
+};
+
+//For various data types. Basically any of the keywords that can be used on variables, functions, structs, etc
+enum DataType {
+  typeAuto, typeSigned = 0,
+  typeConst,
+  typeUnsigned = 2,
+  typeStatic   = 4,
+  typePOINTER  = 8,
+  typeLong     = 16,
+  typeChar     = 32,
+  typeShort    = 64,
+  typeInt      = 128,
+  typeDLong    = 256,
+  typeFloat    = 512,
+  typeDouble   = 1024,
+  typeVoid     = 2048
+};
+
+//For variable content. Encapsulates all common types. Arrays are created as arrays of Content unions.
+union Content {
+  signed char schar,
+  unsigned char uchar,
+  signed short sshort,
+  unsigned short ushort,
+  signed int sint,
+  unsigned int uint,
+  signed long slong,
+  unsigned long ulong,
+  signed long long sdlong,
+  unsigned long long udlong,
+  signed float sfloat,
+  unsigned float ufloat,
+  signed long float slfloat,
+  unsigned long float ulfloat,
+  signed double sdouble,
+  unsigned double udouble,
+  signed long double sldouble,
+  unsigned long double uldouble
+};
+
+struct Variable {
+  char name[999] = "nul",
+  enum DataType type = typeVoid,
+  struct Content value
+};
+
+//TODO: make struct Instruction
+struct Instruction {
+  enum {
+    CPP_Code       = 1,
+    dataIsFunction = 2,
+    createData     = 4,
+    deleteData     = 8,
+    editData       = 16,
+    checkData      = 32,
+    performMath    = 64,
+//    conditional    = 128
+  } InstructionFlags,
+  struct Variable involvedVars[999],
+  struct Function involvedFuncs[999],
+  struct Macro    involvedMacros[999],
+  char involvedMath[999],
+  short involvedKeywords[999]
+};
+
+
+//TODO: make struct Function
+//      Note: Structure ideally should be like struct Macro, but with an array of Instruction structures. These are where flags come into play.
+struct Function {
+  char name[999],
+  enum DataType returnValue,
+  struct Variable args[999],
+  struct Instruction code[999]
+};
+
+
+/*
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * !!                                                          !!
+ * !!  VERY IMPORTANT NOTE:                                    !!
+ * !!                                                          !!
+ * !!  THE BELOW STRUCTURES, ENUMERATIONS, ETC ARE /USELESS/.  !!
+ * !!  A NEW STRUCTURE "Instruction" WILL BE CREATED!!!!!      !!
+ * !!  NONE OF THE BELOW WILL BE USED!!!!                      !!
+ * !!  ALL OF IT MUST BE SCRAPPED!!!!!!!                       !!
+ * !!                                                          !!
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ *
+*/
 
 enum InterpreterFlags {
   standardCode = 0, preprocessorCode = 1,
@@ -71,11 +170,11 @@ enum InstructionIdentifiers {
   defineData          = 0x0D, //00101100
   //std, store, function
   defineFunction      = 0x08, //00001000
-  //pre, 
+  //pre, ref, func
   includeFile         = 0x85, //10000101
-  createMacroVariable = 0x8D, //10001101
-  createMacroFunction = 0x89, //10001001
-  deleteMacroVariable = 0xC5, //11000101
+  //pre, create, variable
+  createMacro = 0x8D, //10001101
+  deleteMacro = 0xC5, //11000101
   deleteMacroFunction = 0xC1, //11000001
   /*
    * TODO: Complete list of instruction identifiers
