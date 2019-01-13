@@ -1,32 +1,54 @@
-//readline.c - implements readline()
+//>Terminal_ / 2Term - dual-purpose terminal "shell" and script interpreter
 //Copyright (C)2018-2019 Intense Battle 2
 /*
- * Insert GNU GPL text here -- THIS MUST BE DONE NEXT
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public license as published by
+ * the Free Software Foundation, either version 3 of the license, or
+ * (at your option) any later version. 
+ *
+ * This program is distributed in the hopes that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses>.
+ *
+*/
+// The project handler for 2Term is Colin "ColinTNMP" Breese. You may contact him about 2Term at <IB2Member01@gmail.com>
+// readline.c - implements readline() for interpreting C code
+
+/*
+ * MAIN DEVELOPMENT NOTE:
+ *
+ * Currently, the most struggle is with being able to
+ * differentiate different types of instructions with
+ * a single struct. During thinking about the
+ * similarities between them, I remembered the one
+ * thing that should be common sense and completely
+ * obvious, at least to me; the entire time I've been
+ * talking about how (at least in C's case) everything
+ * boils down to math. Even in the eyes of the general
+ * public, programming is seen as (more-or-less) math
+ * with words. This is totally the case.
+ *
+ * At the next earliest oppurtunity to edit the
+ * instruction-based structures, change these to be
+ * (almost) entirely math. Even function calls are
+ * math, and should be treated as such.
+ *
+ * Instructions that can't really be treated as math
+ * (at least not easily), ie data declarations, 
+ * pre-processor instructions, and flow control 
+ * (for, while, if, etc), can be treated differently.
+ * Because of these cases (and the fact that one
+ * instruction can do more than one type of action)
+ * the current structure works fine, it just needs to
+ * be tweaked to be math-central and properly mark what
+ * actions need to be carried out instead of trying to
+ * categorize equations.
 */
 
-//These vars store data for readLine(). They're not local static vars because we want other functions to see them.
-
-/*First, since it's needed to build values, the flags. These are used to define the type of instruction
- * parsed by the interpreter. These dictate how the numbers in InstructionIdentifiers are chosen. The
- * flags are defined with ambiguity to allow them to fit the descriptions of a large range of different
- * instruction types. 
- * 
- * Tatoeba, a func call is standard code, instructs, deals with existance (grabs an existing resource),
- * is an operation, is one piece, has args (for >Terminal_, the possibility is enough), contains a resource
- * (it references a resource name), and is complete in its normal form. So, 0x00 is a
- * func call.
- * 
- * Some specific data here for dictating which flags are used in specific cases:
- *  creates data    - instruction of existance
- *  destroys data   - manipulation of existance
- *  loads/&c data   - instruction of value, references, singular
- *  edits data      - manipulation of value
- *  deals w/ funcs  - has arguments
- *  declaration     - singular, incomplete, standalone
- *  
- *  if more actions are required, it is incomplete. Tatoeba, declarations are incomplete because even though they make the
- *   variable, it doesn't have any data to give it, so it needs to be followed up with a definition. 
-*/
 const char* keywords[32] = {
   "auto",     "break",    "case",     "char",
   "const",    "continue", "default",  "do",
@@ -54,15 +76,14 @@ enum DataType {
   typeConst,
   typeUnsigned = 2,
   typeStatic   = 4,
-  typePOINTER  = 8,
-  typeLong     = 16,
-  typeChar     = 32,
-  typeShort    = 64,
-  typeInt      = 128,
-  typeDLong    = 256,
-  typeFloat    = 512,
-  typeDouble   = 1024,
-  typeVoid     = 2048
+  typeLong     = 8,
+  typeChar     = 16,
+  typeShort    = 32,
+  typeInt      = 64,
+  typeDLong    = 128,
+  typeFloat    = 256,
+  typeDouble   = 512,
+  typeVoid     = 1024
 };
 
 //For variable content. Encapsulates all common types. Arrays are created as arrays of Content unions.
@@ -87,10 +108,43 @@ union Content {
   unsigned long double uldouble
 };
 
+//For pointers. Pointer form of Content union.
+union Location {
+  signed char* schar,
+  unsigned char* uchar,
+  signed short* sshort,
+  unsigned short* ushort,
+  signed int* sint,
+  unsigned int* uint,
+  signed long* slong,
+  unsigned long* ulong,
+  signed long long* sdlong,
+  unsigned long long* udlong,
+  signed float* sfloat,
+  unsigned float* ufloat,
+  signed long float* slfloat,
+  unsigned long float* ulfloat,
+  signed double* sdouble,
+  unsigned double* udouble,
+  signed long double* sldouble,
+  unsigned long double* uldouble
+};
+
 struct Variable {
   char name[999] = "nul",
   enum DataType type = typeVoid,
   struct Content value
+};
+
+/*
+ * TODO: look into if performing a `struct Variable*`
+ *       would do the same thing. Also check for hex.
+*/
+//Pointer form of Variable structure
+struct Pointer {
+  char name[999] = "nul",
+  enum DataType type = typeVoid,
+  struct Location target
 };
 
 //TODO: make struct Instruction
@@ -124,6 +178,7 @@ struct Function {
 
 
 /*
+ *
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * !!                                                          !!
  * !!  VERY IMPORTANT NOTE:                                    !!
