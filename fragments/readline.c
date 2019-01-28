@@ -4,7 +4,7 @@
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public license as published by
  * the Free Software Foundation, either version 3 of the license, or
- * (at your option) any later version. 
+ * (at your option) any later version.
  *
  * This program is distributed in the hopes that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -38,8 +38,8 @@
  * math, and should be treated as such.
  *
  * Instructions that can't really be treated as math
- * (at least not easily), ie data declarations, 
- * pre-processor instructions, and flow control 
+ * (at least not easily), ie data declarations,
+ * pre-processor instructions, and flow control
  * (for, while, if, etc), can be treated differently.
  * Because of these cases (and the fact that one
  * instruction can do more than one type of action)
@@ -65,9 +65,9 @@ const char* preProcInstructions[11] = {
   "endif",  "error",   "pragma"         };
 
 struct Macro {
-  char name[999],
-  struct Variable args[999] //999 max args. NOTE: default struct setup, `void nul`, means "not a function macro" AS LONG AS args[0] IS THIS
-  char value[999,999] //[line,char]; 999 lines of 999 chars
+  char            name[999] = "NUL";
+  struct Variable args[999];      //999 max args. NOTE: default struct setup, `void nul`, means "not a function macro" AS LONG AS args[0] IS THIS
+  char            value[999,999]; //[line,char]; 999 lines of 999 chars
 };
 
 //For various data types. Basically any of the keywords that can be used on variables, functions, structs, etc
@@ -88,176 +88,80 @@ enum DataType {
 
 //For variable content. Encapsulates all common types. Arrays are created as arrays of Content unions.
 union Content {
-  signed char schar,
-  unsigned char uchar,
-  signed short sshort,
-  unsigned short ushort,
-  signed int sint,
-  unsigned int uint,
-  signed long slong,
-  unsigned long ulong,
-  signed long long sdlong,
-  unsigned long long udlong,
-  signed float sfloat,
-  unsigned float ufloat,
-  signed long float slfloat,
-  unsigned long float ulfloat,
-  signed double sdouble,
-  unsigned double udouble,
-  signed long double sldouble,
-  unsigned long double uldouble
+  signed   char        schar;
+  unsigned char        uchar;
+  signed   short       sshort;
+  unsigned short       ushort;
+  signed   int         sint;
+  unsigned int         uint;
+  signed   long        slong;
+  unsigned long        ulong;
+  signed   long long   sdlong;
+  unsigned long long   udlong;
+  signed   float       sfloat;
+  unsigned float       ufloat;
+  signed   long float  slfloat;
+  unsigned long float  ulfloat;
+  signed   double      sdouble;
+  unsigned double      udouble;
+  signed   long double sldouble;
+  unsigned long double uldouble;
 };
 
-//For pointers. Pointer form of Content union.
-union Location {
-  signed char* schar,
-  unsigned char* uchar,
-  signed short* sshort,
-  unsigned short* ushort,
-  signed int* sint,
-  unsigned int* uint,
-  signed long* slong,
-  unsigned long* ulong,
-  signed long long* sdlong,
-  unsigned long long* udlong,
-  signed float* sfloat,
-  unsigned float* ufloat,
-  signed long float* slfloat,
-  unsigned long float* ulfloat,
-  signed double* sdouble,
-  unsigned double* udouble,
-  signed long double* sldouble,
-  unsigned long double* uldouble
-};
-
+//Variable structures, for keeping track of variables for the intepreted C code.
+//Using `struct Variable*` will make a pointer structure.
 struct Variable {
-  char name[999] = "nul",
-  enum DataType type = typeVoid,
-  struct Content value
+  char            name[999] = "nul";
+  enum   DataType type = typeVoid;
+  struct Content  value;
 };
 
-/*
- * TODO: look into if performing a `struct Variable*`
- *       would do the same thing. Also check for hex.
-*/
-//Pointer form of Variable structure
-struct Pointer {
-  char name[999] = "nul",
-  enum DataType type = typeVoid,
-  struct Location target
-};
-
-//TODO: make struct Instruction
+//Contains all necessary data of a single instruction.
+//An instruction is either a C command via keyword, function call, or variable/macro stuff (AKA math)
 struct Instruction {
   enum {
-    CPP_Code       = 1,
-    dataIsFunction = 2,
-    createData     = 4,
-    deleteData     = 8,
-    editData       = 16,
-    checkData      = 32,
-    performMath    = 64,
-//    conditional    = 128
-  } InstructionFlags,
-  struct Variable involvedVars[999],
-  struct Function involvedFuncs[999],
-  struct Macro    involvedMacros[999],
-  char involvedMath[999],
-  short involvedKeywords[999]
+    CPP_Code    = 1,  //CPP = C Pre-Processor
+    flowControl = 2,  //Flow controls = C commands. This is the "keyword is involved" flag.
+    createData  = 4,  //This instruction creates data, be it a variable, macro, function, or alike.
+    deleteData  = 8,  //This instruction deletes data, be it a variable, macro, function, or alike.
+    performMath = 16, //This variable performs a mathematical operation. Standard and will probably be removed in favor of a "calles another instruction" flag.
+  } InstructionFlags;
+
+  struct Variable involvedVars[999];   //For var creation
+  struct Function involvedFuncs[999];  //For func creation
+  struct Macro    involvedMacros[999]; //For macro creation
+  char            involvedMath[999];   //For math, obviously
+  short           involvedKeyword;     //Whatever the keyword is (if any, eg "if", "return", or "while"), but by its index number in keywords[]
 };
 
-
-//TODO: make struct Function
-//      Note: Structure ideally should be like struct Macro, but with an array of Instruction structures. These are where flags come into play.
+//Contains all necessary data of a single function.
+//A function in this case is a "package" of multiple instructions executed in succession.
 struct Function {
-  char name[999],
-  enum DataType returnValue,
-  struct Variable args[999],
-  struct Instruction code[999]
+  char               name[999] = "NUL";
+  enum   DataType    returnValue = typeVoid;
+  struct Variable    args[999];   //Note that if an entry == `void nul`, then that means that's the end; no more arguments; REGARDLESS of what's passed that point!
+  struct Instruction code[999];   //Instructions are considered to end first instance of an empty instruction (0, [0]=='void nul', [0]=='void NUL(void)', [0]=='NUL', <empty>, 0) REGARDLESS OF WHAT'S PASSED THAT POINT!
 };
 
 
-/*
- *
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- * !!                                                          !!
- * !!  VERY IMPORTANT NOTE:                                    !!
- * !!                                                          !!
- * !!  THE BELOW STRUCTURES, ENUMERATIONS, ETC ARE /USELESS/.  !!
- * !!  A NEW STRUCTURE "Instruction" WILL BE CREATED!!!!!      !!
- * !!  NONE OF THE BELOW WILL BE USED!!!!                      !!
- * !!  ALL OF IT MUST BE SCRAPPED!!!!!!!                       !!
- * !!                                                          !!
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- *
-*/
 
-enum InterpreterFlags {
-  standardCode = 0, preprocessorCode = 1,
-  loadRefEtc   = 0, storeCreateEtc   = 2,
-  variable     = 0, function         = 4,
-  
-  /*
-   * Currently changing flags; current setup doesn't work at all. Current leftovers:
-  
-  singlePiece  = 0, multiPiece       = 16,
-  hasArgs      = 0, noArgs           = 32,
-  reference    = 0, standAlone       = 64,
-  complete     = 0, incomplete       = 128
-  
-  *Extra note: flags are (very loosely) based off how assembly code works
-*/
-};
-
-//Then, the flag results
-enum InstructionIdentifiers {
-  /*
-   * TODO: Sort alphabetically, then mark as such
-   * AND: Fix all of these to the new flag system
-  */
-  //std, ref, func, asOp
-  callFunction        = 0x00, //00000000
-  //std, create, variable
-  declareData         = 0x07, //00000111
-  //std, create, function
-  declareFunction     = 0x03, //00000011
-  //std, store, variable
-  defineData          = 0x0D, //00101100
-  //std, store, function
-  defineFunction      = 0x08, //00001000
-  //pre, ref, func
-  includeFile         = 0x85, //10000101
-  //pre, create, variable
-  createMacro = 0x8D, //10001101
-  deleteMacro = 0xC5, //11000101
-  deleteMacroFunction = 0xC1, //11000001
-  /*
-   * TODO: Complete list of instruction identifiers
-  */
-};
-
-//Finally, the package!
-struct InterpreterResults {
-  enum InstructionIdentifiers type;
-  char name[999];
-  char modifiers_1; //too generic… maybe another enum?
-  /*
-   * TODO: Fill according to needed data
-   *       KEEP AMBIGUOUS
- */
- 
-//Internal var for skipping whitespace
+//Internal function for skipping whitespace. Returns new `i` value to continue from.
 static long skipWhiteSpace(const char* line, long i){
   while(line[i] == ' ') i++;
   return i;
 }
 
+//Actual meat -- the readline() function.
+/*
+ * NOTE: At this stage of development, this function may contain data-structures and variables that do not exist yet!
+*/
 struct InterpreterResults readLine(const char* line){
   enum InterpreterFlags flags;
   enum ScanningFlags scan;
+  struct InterpreterResults results;
   long i = skipWhiteSpace(line, i), j = i;
   char tmp[999];
- 
+  
   //Check if preprocessor code
   if(line[i] == '#'){
     flags = preProcessorCode;
@@ -265,4 +169,4 @@ struct InterpreterResults readLine(const char* line){
   }
  
   for(i=i; i<sizeof(line); i++){
-    if
+    if( line[i] == ' ' )
