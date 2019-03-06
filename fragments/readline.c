@@ -209,7 +209,7 @@ struct InterpreterResults readLine(const char* line){
   enum InterpreterFlags flags;
   enum ScanningFlags scan;
   struct InterpreterResults results;
-  long i = skipWhiteSpace(line, i), j = i;
+  long i = skipWhiteSpace(line, i), j = 0;
   char tmp[999];
   
   //Check if preprocessor code
@@ -219,4 +219,13 @@ struct InterpreterResults readLine(const char* line){
   }
  
   for(i=i; i<sizeof(line); i++){
-    if( line[i] == ' ' )
+    if( line[i] == ' ' ) break;
+    switch(line[i]){
+      case '(':
+    if( j == 999 ) //TODO: error
+    
+    tmp[j]=line[i]; j++;
+  }
+  
+  if( flags 
+    
