@@ -36,7 +36,7 @@
 
 
 //Turns number from text into int
-int stringToNumber(char* string, double startLocation)
+int stringToNumber(char* string, double startLocation, int* retvar)
 {
   int tnum=0, i=(int)startLocation;
   while(1)
@@ -53,6 +53,7 @@ int stringToNumber(char* string, double startLocation)
       case '8': tnum += 8; break;
       case '9': tnum += 9; break;
       default:
+        *retvar = i;
         return tnum;
       break;
     }
@@ -97,15 +98,31 @@ int runInstruction(struct Instruction given_instruction)
   for(c=0; c!=-1; c++)
   {
     action = given_instruction.action[c];
+    /* Developer's note:
+     * I'm going to make `if` '>' instead of "if" just to keep the whole "one character" thing that seems to be going on with most of the code.
+     * - Colin "ColinTNMP" Breese <IB2Member01@gmail.com>
+    */
     for(i=0; i!=-1; i++)
     {
       switch(action[i]){
         case 'i':
-          if (action[i+1]=='f') // TODO: Continue to if statement
-          if (action[i+1]==':')
           {
+            if(action[+1]!=':') { inum = stringToNumber(action, i+1, &i); break; }
+            
             //Get the number first
-            tnum = stringToNumber(action, i+3);
+            tnum = stringToNumber(action, i+3, &i);
             switch(action[i+2]){
               case 'i': inum = given_instruction.instruction[tnum]; break;
-              case 'b': inum = given_instruction.instruction[
+              case 'b': inum = given_instruction.block[tnum];       break;
+              case 'v': inum = given_instruction.variable[tnum];    break;
+              case 'm': inum = given_instruction.macro[tnum];       break;
+              case 'd': /* TODO: Write error code -- data is raw, not an index number! */ break;
+              case 'r': inum = (int)typecast(128, result[tnum], 0); break; //Funny how that manages to fit :P
+              case 'a': /* TODO: Write error code -- action is text, not an index number! */ break;
+              default:
+                // TODO: Write error code -- Syntax error
+              break;
+            }
+          }
+          
+          
