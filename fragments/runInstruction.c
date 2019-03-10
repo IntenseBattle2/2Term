@@ -28,6 +28,38 @@
  * ||...
 */
 
+/*
+ * -------------------
+ * | Data Structures |
+ * -------------------
+*/
+
+
+//Turns number from text into int
+int stringToNumber(char* string, double startLocation)
+{
+  int tnum=0, i=(int)startLocation;
+  while(1)
+  {
+    switch(string[i]){
+      case '0': break;
+      case '1': tnum += 1; break;
+      case '2': tnum += 2; break;
+      case '3': tnum += 3; break;
+      case '4': tnum += 4; break;
+      case '5': tnum += 5; break;
+      case '6': tnum += 6; break;
+      case '7': tnum += 7; break;
+      case '8': tnum += 8; break;
+      case '9': tnum += 9; break;
+      default:
+        return tnum;
+      break;
+    }
+    tnum *= 10;
+  }
+}
+
 
 //The main function: runInstruction()
 //  NOTE: In this stage of development, this function may contain data that is not yet defined.
@@ -39,30 +71,41 @@
 */
 int runInstruction(struct Instruction given_instruction)
 {
-  if ( /*given_instruction == void version*/) return -1;
-  if ( given_instruction.preproc != -1 )
+  // Check if given_instruction is null
+  if ( given_instruction.instruction[0] == 0 &&
+       given_instruction.block[0]       == 0 &&
+	     given_instruction.variable[0]    == 0 &&
+	     given_instruction.macro[0]       == 0    ) return -1; //ERR01: NULL_INSTRUCTION
+  
+  int i,j,c,tnum,inum;    // i,j,c: looping vars; tnum: temp number storage; inum = index number from instruction members
+  char* action; // Current action being viewed
+  struct Variable* numbers; //For getting data to be used in math
+  enum {
+    none,                         //Placeholder for null
+    add, sub, mul, div, mod,      //ADD, SUBtraction, MULtiplication, DIVision, MODulus
+    eqt, net, lth, lte, gth, gte, //EQual To, Not Equal To, Less THan, Less Than or Equal to, Greater THan, Greater Than or Equal to
+    lan, lor, not,                //Logical ANd, Logical OR, logical NOT
+    ban, bor, bxo, bco, bls, brs, //Bitwise ANd, Bitwise OR, Bitwise XOr, Bitwise not (2's COmplement), Bitwise Left Shift, Bitwise Right Shift
+    ass, szf, add, con,           //ASSignment, SiZeoF, ADDress, CONditional (ternary)
+    ind = 100                     //INDirection -- made so that other values can be combined; indirection's unique nature makes it unable to be done by itself.
+  } operator;
+  enum DataType typeconv; //For knowing what to convert the type to during type conversion.
+        
+    
+  
+  // In these FOR loops, the given variables can never be -1, therefore they'll loop until a `break`
+  for(c=0; c!=-1; c++)
   {
-    runPreProc(given_instruction);
-    return -2;
-  }
-  switch (given_instruction.keyword[0]) { //detect data declaration
-    case 1:  //auto
-    case 4:  //char
-    case 5:  //const
-    case 9:  //double
-    case 11: //enum
-    case 12: //extern
-    case 13: //float
-    case 17: //int
-    case 18: //long
-    case 21: //short
-    case 22: //signed
-    case 24: //static
-    case 25: //struct
-    case 28: //union
-    case 29: //unsigned
-    case 30: //void
-    case 31: //volatile
-      //see if var already exists
-      if ( getVarByName(given_instruction.variable[0]) ) return -2;
-      
+    action = given_instruction.action[c];
+    for(i=0; i!=-1; i++)
+    {
+      switch(action[i]){
+        case 'i':
+          if (action[i+1]=='f') // TODO: Continue to if statement
+          if (action[i+1]==':')
+          {
+            //Get the number first
+            tnum = stringToNumber(action, i+3);
+            switch(action[i+2]){
+              case 'i': inum = given_instruction.instruction[tnum]; break;
+              case 'b': inum = given_instruction.instruction[

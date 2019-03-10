@@ -86,7 +86,7 @@ struct Instruction {
   int*             variable    = calloc(4);
   int*             macro       = calloc(4);
   struct Variable* internal;
-  char**           action      = calloc(sizeof(char*));
+  char**           action;
 };
 
 

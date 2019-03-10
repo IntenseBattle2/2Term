@@ -18,36 +18,17 @@
 // The project handler for 2Term is Colin "ColinTNMP" Breese. You may contact him about 2Term at <IB2Member01@gmail.com>
 // readline.c - implements readline() for interpreting C code
 
-/*
- * MAIN DEVELOPMENT NOTE:
+/* About this file: readline.c
+ * 
+ * This file defines functions for reading code entered
+ * into IB2C's `RunC` command along with helper functions
+ * and some data for keeping track of the functions' info.
  *
- * Currently, the most struggle is with being able to
- * differentiate different types of instructions with
- * a single struct. During thinking about the
- * similarities between them, I remembered the one
- * thing that should be common sense and completely
- * obvious, at least to me; the entire time I've been
- * talking about how (at least in C's case) everything
- * boils down to math. Even in the eyes of the general
- * public, programming is seen as (more-or-less) math
- * with words. This is totally the case.
- *
- * At the next earliest oppurtunity to edit the
- * instruction-based structures, change these to be
- * (almost) entirely math. Even function calls are
- * math, and should be treated as such.
- *
- * Instructions that can't really be treated as math
- * (at least not easily), ie data declarations,
- * pre-processor instructions, and flow control
- * (for, while, if, etc), can be treated differently.
- * Because of these cases (and the fact that one
- * instruction can do more than one type of action)
- * the current structure works fine, it just needs to
- * be tweaked to be math-central and properly mark what
- * actions need to be carried out instead of trying to
- * categorize equations.
+ * For running the code, see runInstruction.c; for initial
+ * parsing of `RunC`'s content into lines, sit tight!!!!!
 */
+
+#include "datastore.c"
 
 /* File dependencies:
  *
