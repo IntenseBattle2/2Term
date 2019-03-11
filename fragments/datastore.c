@@ -81,6 +81,8 @@ struct Macro {
 // Instruction - See dev-notes/C-interpreter/Instruction.md
 // For: InstructionBlock(?)
 struct Instruction {
+  int              resultsLen  = 0;
+  int              numbersLen  = 0;
   int*             instruction = calloc(4);
   int*             block       = calloc(4);
   int*             variable    = calloc(4);
