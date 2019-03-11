@@ -34,6 +34,13 @@
  * -------------------
 */
 
+struct Variable* result;
+
+/*
+ * -------------
+ * | Functions |
+ * -------------
+*/
 
 //Turns number from text into int
 int stringToNumber(char* string, double startLocation, int* retvar)
@@ -61,6 +68,35 @@ int stringToNumber(char* string, double startLocation, int* retvar)
   }
 }
 
+//Get value for runInstruction()'s inum
+//NOTE: startpoint should be RIGHT AFTER IDENTIFIER.
+//      This should include the possible ':'
+int getInum(char* action, int startPoint, int* retvar, struct Instruction given_instruction)
+{
+  int i=startPoint, tnum, inum;
+  
+  if (action[i]!=':')
+  {
+    inum = stringToNumber(action, i, retvar);
+    return inum;
+  }
+  //Get the number first
+  tnum = stringToNumber(action, i+2, retvar);
+  switch(action[i+1]){
+    case 'i': inum = given_instruction.instruction[tnum]; break;
+    case 'b': inum = given_instruction.block[tnum];       break;
+    case 'v': inum = given_instruction.variable[tnum];    break;
+    case 'm': inum = given_instruction.macro[tnum];       break;
+    case 'd': /* TODO: Error: data is raw, not inum */    break;
+    case 'r': inum = (int)typecast(128, result[tnum], 0); break; //Funny how that manages to fit :P
+    case 'a': /* TODO: Error: action is text, not inum */ break;
+    default:
+      //TODO: Error: Syntax error - invalid identifier
+    break;
+  }
+  *retvar += 1; //Avoid ':'
+  return inum;
+}
 
 //The main function: runInstruction()
 //  NOTE: In this stage of development, this function may contain data that is not yet defined.
@@ -75,8 +111,8 @@ int runInstruction(struct Instruction given_instruction)
   // Check if given_instruction is null
   if ( given_instruction.instruction[0] == 0 &&
        given_instruction.block[0]       == 0 &&
-	     given_instruction.variable[0]    == 0 &&
-	     given_instruction.macro[0]       == 0    ) return -1; //ERR01: NULL_INSTRUCTION
+	   given_instruction.variable[0]    == 0 &&
+	   given_instruction.macro[0]       == 0    ) return -1; //ERR01: NULL_INSTRUCTION
   
   int i,j,c,tnum,inum;    // i,j,c: looping vars; tnum: temp number storage; inum = index number from instruction members
   char* action; // Current action being viewed
@@ -106,23 +142,8 @@ int runInstruction(struct Instruction given_instruction)
     {
       switch(action[i]){
         case 'i':
-          {
-            if(action[+1]!=':') { inum = stringToNumber(action, i+1, &i); break; }
-            
-            //Get the number first
-            tnum = stringToNumber(action, i+3, &i);
-            switch(action[i+2]){
-              case 'i': inum = given_instruction.instruction[tnum]; break;
-              case 'b': inum = given_instruction.block[tnum];       break;
-              case 'v': inum = given_instruction.variable[tnum];    break;
-              case 'm': inum = given_instruction.macro[tnum];       break;
-              case 'd': /* TODO: Write error code -- data is raw, not an index number! */ break;
-              case 'r': inum = (int)typecast(128, result[tnum], 0); break; //Funny how that manages to fit :P
-              case 'a': /* TODO: Write error code -- action is text, not an index number! */ break;
-              default:
-                // TODO: Write error code -- Syntax error
-              break;
-            }
-          }
-          
-          
+          inum = getInum(action, i+1, &i, given_instruction);
+          runInstruction(instruction[given_instruction.instruction[inum]]);
+        break;
+        case 'b':
+          inum = getInum(action, i+1, &i, given_instruction);
