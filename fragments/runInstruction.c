@@ -75,14 +75,14 @@ int getInum(char* action, int startPoint, int* retvar, struct Instruction given_
 {
   int i=startPoint, tnum, inum;
   
-  if (action[i]!=':')
+  if (*action[i]!=':')
   {
     inum = stringToNumber(action, i, retvar);
     return inum;
   }
   //Get the number first
   tnum = stringToNumber(action, i+2, retvar);
-  switch(action[i+1]){
+  switch(*action[i+1]){
     case 'i': inum = given_instruction.instruction[tnum]; break;
     case 'b': inum = given_instruction.block[tnum];       break;
     case 'v': inum = given_instruction.variable[tnum];    break;
@@ -141,10 +141,19 @@ int runInstruction(struct Instruction given_instruction)
     */
     for(i=0; i!=-1; i++)
     {
-      switch(action[i]){
+      switch(*action[i]){
+        case '\0': //AKA, end of string
+          i = -1; //Onto the next one!
+        break;
+        case 'E':
+          if ( *action[i+1] == 'N' &&
+               *action[i+2] == 'D' &&
+               *action[i+3] == '\0'   ) { i = -1; c = -1; }
+        break;
         case 'i':
           inum = getInum(action, i+1, &i, given_instruction);
           runInstruction(instruction[given_instruction.instruction[inum]]);
+          i = -1;
         break;
         case 'b':
           inum = getInum(action, i+1, &i, given_instruction);
