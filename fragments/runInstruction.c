@@ -111,12 +111,13 @@ int runInstruction(struct Instruction given_instruction)
   // Check if given_instruction is null
   if ( given_instruction.instruction[0] == 0 &&
        given_instruction.block[0]       == 0 &&
-	   given_instruction.variable[0]    == 0 &&
-	   given_instruction.macro[0]       == 0    ) return -1; //ERR01: NULL_INSTRUCTION
+       given_instruction.variable[0]    == 0 &&
+       given_instruction.macro[0]       == 0    ) return -1; //ERR01: NULL_INSTRUCTION
   
-  int i,j,c,tnum,inum;    // i,j,c: looping vars; tnum: temp number storage; inum = index number from instruction members
+  int i,j,c,n,r,tnum,inum;    // i,j,c: looping vars; tnum: temp number storage; inum = index number from instruction members; n,r: numbers/result index
   char* action; // Current action being viewed
-  struct Variable* numbers; //For getting data to be used in math
+  struct Variable* numbers = malloc(given_instruction.numbersLen * sizeof(struct Variable)); //For getting data to be used in math
+  result = malloc(given_instruction.resultsLen * sizeof(struct Variable));
   enum {
     none,                         //Placeholder for null
     add, sub, mul, div, mod,      //ADD, SUBtraction, MULtiplication, DIVision, MODulus
@@ -147,3 +148,23 @@ int runInstruction(struct Instruction given_instruction)
         break;
         case 'b':
           inum = getInum(action, i+1, &i, given_instruction);
+          //TODO: Get arguments & call runInstructionBlock(instructionBlock, int argcount, struct Variable* arguments);
+        break;
+        case 'm':
+          //TODO: Figure out how the heck macros fit into this since preprocessor stuff should be over...
+        break;
+        case 'v':
+          inum = getInum(action, i+1, &i, given_instruction);
+          numbers[n++] = variable[given_instruction.variable[inum]];
+        break;
+        case 'd':
+          inum = getInum(action, i+1, &i, given_instruction);
+          numbers[n++] = given_instruction.internal[inum];
+        case 'r':
+          inum = getInum(action, i+1, &i, given_instruction);
+          numbers[n++] = result[inum];
+        break;
+        case 'a':
+          inum = getInum(action, i+1, &i, given_instruction);
+          c = inum; i = -1;
+        break;
