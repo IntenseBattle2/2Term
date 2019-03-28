@@ -125,6 +125,7 @@ int runInstruction(struct Instruction given_instruction)
     lan, lor, not,                //Logical ANd, Logical OR, logical NOT
     ban, bor, bxo, bco, bls, brs, //Bitwise ANd, Bitwise OR, Bitwise XOr, Bitwise not (2's COmplement), Bitwise Left Shift, Bitwise Right Shift
     ass, szf, add, con,           //ASSignment, SiZeoF, ADDress, CONditional (ternary)
+    mem,                          //MEMber operator
     ind = 100                     //INDirection -- made so that other values can be combined; indirection's unique nature makes it unable to be done by itself.
   } operator;
   enum DataType typeconv; //For knowing what to convert the type to during type conversion.
@@ -145,11 +146,14 @@ int runInstruction(struct Instruction given_instruction)
         case '\0': //AKA, end of string
           i = -1; //Onto the next one!
         break;
-        case 'E':
+        case 'E': //I may have to move this; this is to test if the action is the null-terminated string "END", but this checks anywhere
           if ( *action[i+1] == 'N' &&
                *action[i+2] == 'D' &&
                *action[i+3] == '\0'   ) { i = -1; c = -1; }
         break;
+        /*
+         * Identifiers
+        */
         case 'i':
           inum = getInum(action, i+1, &i, given_instruction);
           runInstruction(instruction[given_instruction.instruction[inum]]);
@@ -159,12 +163,12 @@ int runInstruction(struct Instruction given_instruction)
           inum = getInum(action, i+1, &i, given_instruction);
           //TODO: Get arguments & call runInstructionBlock(instructionBlock, int argcount, struct Variable* arguments);
         break;
-        case 'm':
-          //TODO: Figure out how the heck macros fit into this since preprocessor stuff should be over...
-        break;
         case 'v':
           inum = getInum(action, i+1, &i, given_instruction);
           numbers[n++] = variable[given_instruction.variable[inum]];
+        break;
+        case 'm':
+          //TODO: Figure out how the heck macros fit into this since preprocessor stuff should be over...
         break;
         case 'd':
           inum = getInum(action, i+1, &i, given_instruction);
@@ -176,4 +180,27 @@ int runInstruction(struct Instruction given_instruction)
         case 'a':
           inum = getInum(action, i+1, &i, given_instruction);
           c = inum; i = -1;
+        break;
+        /*
+         * Operators
+        */
+        case '(': //For: a(x,...), (x)a
+          //TODO: Determine difference from arguments and type
+        break;
+        case '[': //for: a[x]
+          //TODO: Determine number or number variable
+        break;
+        case '+': //For: a+b
+          operator = add;
+        break;
+        case '-': //For: a->b, a-b
+          if ( action[i+1] == '>' )
+          {
+            operator = mem + ind;
+          } else {
+            operator = sub;
+          }
+        break;
+        case '.': //For: a.b
+          operator = mem;
         break;
