@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
   variable[0].aval.argsL     = 2;
   variable[0].aval.operation = 1;
   
-  printf("2Term v0.1.1i - IB2C interpreter\n");
+  printf("2Term v0.1.2i - IB2C interpreter\n");
   while (1)
   {
     for (i=0; i<256; i++) input[i] = '\0';
@@ -115,7 +115,6 @@ void interpretInput(char input[])
           j     = 0;
           isArg = 0;
           fpnum = 0;
-          continue;
         }
       }                                                                                            //puts(">>> switch");
       switch (input[i])
@@ -223,7 +222,6 @@ void runFunc(const char name[])
 {
   int i, j, f=0, a=0;
   Variable args[4];
-  //free(argument);
   
   for (i=0; i<var_count; i++)
   {
@@ -256,6 +254,7 @@ void runFunc(const char name[])
     return;
   }
   puts("ERR: Function does not exist");
+  free(argument);
   return;
 }
 
