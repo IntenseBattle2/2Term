@@ -22,42 +22,16 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include "structures.h"
+#include "runc.h"
 
 void interpretInput(char input[]);
 int skipWhiteSpace(int* i, const char string[]);
 void runFunc(const char name[]);
-char* itostr(int number);
+void copyVariable(Variable* dest, Variable src);
 
-/*
-   operation = 1 : run C function [arg0 = index, args... = argument(s)]
-   operation = 2 : create permanent variable [arg1 = name, arg2 = type, arg3 = valueType, arg4 = value]
-   operation = 3 : set permanent variable [arg1 = name, arg2 = type, arg3 = valueType, arg4 = value]
-   operation = 4 : create temp variable [arg1 = index, arg2 = type, arg3 = valueType, arg4 = value]
-   operation = 5 : set temp variable [arg1 = index, arg2 = type, arg3 = valueType, arg4 = value]
-*/   
-struct Action {
-  struct Variable* argsV;
-  int*             argsI;
-  int*             argsT;
-  int*             argsO;
-  char             o_len;
-  int              operation;
-};
-
-struct Variable {
-  char*         name;
-  int           type;
-  int           ival;
-  char*         sval;
-  struct Action aval;
-  void*         pval;
-  double        fval;
-};
-
-
-struct Variable*  variable;
-void**            function;
-struct Variable*  argument;
+Variable*  variable;
+Variable*  argument;
 
 int var_count;
 int arg_count;
@@ -68,26 +42,21 @@ int main(int argc, char* argv[])
   char input[256];
   int  i;
   
-  variable = calloc(1, sizeof(struct Variable));
+  variable = calloc(1, sizeof(Variable));
   var_count = 1;
   variable[0].name           = malloc(10); strcpy(variable[0].name, "print |$|");
   variable[0].type           = 7;
+  variable[0].vlen           = 1;
   variable[0].aval.argsI     = calloc(2, sizeof(int));
   variable[0].aval.argsI[0]  = 0;
   variable[0].aval.argsI[1]  = 0;
   variable[0].aval.argsT     = calloc(2, sizeof(int));
   variable[0].aval.argsT[0]  = 1;
   variable[0].aval.argsT[1]  = 2;
-  variable[0].aval.argsO     = calloc(2, 1);
-  variable[0].aval.argsO[0]  = 2;
-  variable[0].aval.argsO[1]  = 2;
-  variable[0].aval.o_len     = 2;
+  variable[0].aval.argsL     = 2;
   variable[0].aval.operation = 1;
   
-  function = calloc(1, sizeof(void*));
-  function[0] = &puts;
-  
-  printf("2Term v0.0.1i - IB2C interpreter\n");
+  printf("2Term v0.1.1i - IB2C interpreter\n");
   while (1)
   {
     for (i=0; i<256; i++) input[i] = '\0';
@@ -100,7 +69,7 @@ int main(int argc, char* argv[])
 
 void interpretInput(char input[])
 {
-  int i=0, j=0, s=0, n=0, t, quotes=0, isArg=0, fpnum=0, quitLoop=0;
+  int i=0, j=0, s=-1, n=0, t, quotes=0, isArg=0, fpnum=0, quitLoop=0;
   char segment[256];
   char arguments[10][256];
   char name[256];
@@ -114,15 +83,11 @@ void interpretInput(char input[])
   if (!skipWhiteSpace(&i, input)) return;
   
   for (i=0; i<256; i++)
-  {                                                                                                puts("------------");
-                                                                                                   printf(">> i   = %d\n", i);
-                                                                                                   printf(">> chr = %c\n", input[i]);
+  {                                                                                                //printf("------------\n>> i   = %d\n>> chr = %c\n", i, input[i]);
     if (isdigit(input[i]))
-    {
-                                                                                                   puts(">> is_digit");
+    {                                                                                              //puts(">> is_digit");
       if (!isArg)
-      {
-                                                                                                   puts(">>> !isArg");
+      {                                                                                            //puts(">>> !isArg");
         if (++s == 10) break;
         j      = 0;
         quotes = 0;
@@ -130,12 +95,12 @@ void interpretInput(char input[])
       }
     }
     else
-    {                                                                                              puts(">> !is_digit");
+    {                                                                                              //puts(">> !is_digit");
       if (isArg && !quotes)
-      {                                                                                            puts(">>> is_number");
+      {                                                                                            //puts(">>> is_number");
         if (input[i] == '.')
-        {                                                                                          puts(">>>> decimal");
-          fpnum++;                                                                                 printf(">>>> fpnum = %d\n", fpnum);
+        {                                                                                          //puts(">>>> decimal");
+          fpnum++;                                                                                 //printf(">>>> fpnum = %d\n", fpnum);
           if (fpnum == 2)
           {
             puts("ERR: Syntax: number has over 1 decimal point");
@@ -143,8 +108,7 @@ void interpretInput(char input[])
           }
         }
         else
-        {
-                                                                                                   puts(">>>> end number");
+        {                                                                                          //puts(">>>> end number");
           name[n++] = '|';
           name[n++] = (fpnum)? '%' : '#';
           name[n++] = '|';
@@ -153,23 +117,21 @@ void interpretInput(char input[])
           fpnum = 0;
           continue;
         }
-      }
-                                                                                                   puts(">>> switch");
+      }                                                                                            //puts(">>> switch");
       switch (input[i])
       {
-        case '\0': puts(">>> null"); quitLoop = 1; break;
+        case '\0': quitLoop = 1; break;
         case ' ':
           if (!quotes)
-          {                                                                                        puts(">>>> space");
+          {                                                                                        //puts(">>>> space");
             skipWhiteSpace(&i, input);
             j         =   0;
             i--;
           }
           break;
-        case '"':
-                                                                                                   puts(">>>> quotes");
+        case '"':                                                                                  //puts(">>>> quotes");
           if (quotes)
-          {                                                                                        puts(">>>>> end");
+          {                                                                                        //puts(">>>>> end");
             quotes    =   0;
             j         =   0;
             isArg     =   0;
@@ -179,7 +141,7 @@ void interpretInput(char input[])
             continue;
           }
           else
-          {                                                                                        puts(">>>>> begin");
+          {                                                                                        //puts(">>>>> begin");
             if (++s == 10) { quitLoop = 1; break; }
             isArg  = 1;
             quotes = 1;
@@ -188,8 +150,7 @@ void interpretInput(char input[])
           }
           break;
       }
-      if (quitLoop) break;
-                                                                                                   puts(">>> Didn't quit loop");
+      if (quitLoop) break;                                                                         //puts(">>> Didn't quit loop");
     }
     
     if (isArg)
@@ -201,42 +162,49 @@ void interpretInput(char input[])
       segment[j++] = input[i];
       name[n++]    = input[i];
     }
-                                                                                                   printf(">> argum: %s\n", arguments[s]);
+                                                                                                   //printf(">> argum: %s\n", arguments[s]);
   }
   
   if (isArg) // can only be number
   {
+                                                                                                   puts(">> post-isArg");
     name[n++] = '|';
     name[n++] = (fpnum)? '%' : '#';
     name[n++] = '|';
   }
   for (n=n; n<256; n++) name[n] = '\0';
   
-  /*
-  argument = calloc(s, sizeof(struct Variable)); j = 0;
+  argument = calloc(s, sizeof(Variable)); j = 0;                                            //puts(">> calloc'd argument");
   for (i=0; i<256; i++)
   {
     if (name[i] == '#')
     {
       argument[j].name = (char*)malloc(4); strcpy(argument[j].name, "|#|");
       argument[j].type = 1;
-      argument[j].ival = atoi(arguments[j++]);
+      argument[j].vlen = 1;
+      argument[j].ival = atoi(arguments[j]);
+      j++;
     }
     if (name[i] == '%')
     {
       argument[j].name = (char*)malloc(4); strcpy(argument[j].name, "|%|");
       argument[j].type = 2;
-      argument[j].fval = atof(arguments[j++]);
+      argument[j].vlen = 1;
+      argument[j].fval = atof(arguments[j]);
+      j++;
     }
     if (name[i] == '$')
-    {
-      argument[j].name = (char*)malloc(4); strcpy(argument[j].name, "|#|");
+    {                                                                                              //puts(">> Detected string");
+      argument[j].name = (char*)malloc(4); strcpy(argument[j].name, "|$|");
       argument[j].type = 3;
-      argument[j].sval = (char*)malloc(strlen(arguments[j])+1); strcpy(argument[j].sval, arguments[j++]);
+      argument[j].vlen = 1;
+      argument[j].sval = (char*)malloc(strlen(arguments[j]+1));                                    //puts(">> malloc'd space");
+      strcpy(argument[j].sval, arguments[j]);                                                      //puts(">> Set argument");
+      j++;
     }
     if (name[i] == '\0') break;
   }
-  */
+  
   puts(name);
   runFunc(name);
   return;
@@ -253,40 +221,56 @@ int skipWhiteSpace(int* i, const char string[])
 
 void runFunc(const char name[])
 {
-  int i;
-  free(argument);
+  int i, j, f=0, a=0;
+  Variable args[4];
+  //free(argument);
   
   for (i=0; i<var_count; i++)
   {
-    if (strcmp(variable[i].name, name) == 0)
+    if (strcmp(variable[i].name, name) == 0) 
     {
-      printf("%d\n", i);
-      return;
+      f=1;
+      break;
     }
+  }
+  if (f)
+  {
+    printf("%d\n", i);
+    if (variable[i].type == 7)
+    {
+      switch (variable[i].aval.operation)
+      {
+        case 1:
+          for (j=1; j<variable[i].aval.argsL; j++)
+          {
+            switch (variable[i].aval.argsT[j])
+            {
+              case 1: copyVariable(&args[a], variable[variable[i].aval.argsI[j]]); a++; break;
+              case 2: copyVariable(&args[a], argument[variable[i].aval.argsI[j]]); a++; break;
+            }
+          }
+          break;
+      }
+      runC(variable[i].aval.argsI[0], args);
+    }      
+    return;
   }
   puts("ERR: Function does not exist");
   return;
 }
 
-char* itostr(int number)
+void copyVariable(Variable* dest, Variable src)
 {
-  int i=0, j=0, newnum, subnum;
-  char result[256];
-  char* returnval;
-  
-  while (newnum > 0)
+  dest->name = src.name;
+  dest->type = src.type;
+  dest->vlen = src.vlen;
+  switch (src.type)
   {
-    newnum  = number / pow(10,i);
-    subnum  = newnum;
-    subnum /= 10;
-    subnum *= 10;
-    newnum -= subnum;
-    result[i++] = (char)(48 + newnum);
+    case 1: case 6: dest->ival = src.ival; break; //number, boolean
+    case 2:         dest->fval = src.fval; break; //floating-point
+    case 3: case 5: dest->sval = src.sval; break; //string, code
+    case 4:         dest->pval = src.pval; break; //pointer
+    case 7:         dest->aval = src.aval; break; //function
   }
-  
-  returnval = (char*)malloc(i--);
-  for (i=i; i >= 0; i--) returnval[j++] = result[i];
-  returnval[j] = '\0';
-  
-  return returnval;
+  return;
 }
