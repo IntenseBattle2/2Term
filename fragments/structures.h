@@ -11,7 +11,7 @@
 #define HEADER_STRUCTURES
 
 /*
-   operation = 1 : run C function [arg0 = index, args... = argument(s)]
+   operation = 1 : run C function [arg0 = ID, args... = argument(s)]
    operation = 2 : create permanent variable [arg1 = name, arg2 = type, arg3 = valueType, arg4 = value]
    operation = 3 : set permanent variable [arg1 = name, arg2 = type, arg3 = valueType, arg4 = value]
    operation = 4 : create temp variable [arg1 = index, arg2 = type, arg3 = valueType, arg4 = value]
@@ -30,11 +30,12 @@ typedef struct {
   char*        name;
   int          type;
   unsigned int vlen;
-  int          ival;
+  int*         ival;
   char*        sval;
-  Action       aval;
+  Action*      aval;
   void*        pval;
-  double       fval;
+  double*      fval;
+  FILE**       bval;
 } Variable;
 
 #endif
