@@ -39,7 +39,7 @@ int arg_count;
 
 int main(int argc, char* argv[])
 {
-  char input[256];
+  char input[256], *name;
   int  i;
   
   variable = calloc(1, sizeof(Variable));
@@ -63,12 +63,14 @@ int main(int argc, char* argv[])
     for (i=0; i<256; i++) input[i] = '\0';
     printf("> ");
     gets(input);
-    interpretInput(input);                                                                         puts("Exited interpretInput");
+    name = interpretInput(input);                                                                     puts("Exited interpretInput");
+    runFunc(name);
+    free(argument);
   }
   return 0;
 }
 
-void interpretInput(char input[])
+char* interpretInput(const char input[])
 {
   int i, j, s=-1, n=0, t, quotes=0, isArg=0, fpnum=0, quitLoop=0;
   char segment[256], arguments[10][256], name[256] argIsVar[10]={0,0,0,0,0,0,0,0,0,0};
@@ -243,9 +245,8 @@ void interpretInput(char input[])
   }
   
   puts(name);
-  runFunc(name);                                                                                   puts("Ran function");
-  free(argument);                                                                                  puts("Freed argument");
-  return;
+  
+  return name;
 }
 
 int skipWhiteSpace(int* i, const char string[])
