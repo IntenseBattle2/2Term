@@ -29,6 +29,8 @@ void interpretInput(char input[]);
 int skipWhiteSpace(int* i, const char string[]);
 void runFunc(const char name[]);
 void copyVariable(Variable* dest, Variable src);
+int findVariable(const char name[]);
+void unloadArgumentList();
 
 Variable*  variable;
 Variable*  argument;
@@ -63,7 +65,9 @@ int main(int argc, char* argv[])
     for (i=0; i<256; i++) input[i] = '\0';
     printf("> ");
     gets(input);
-    interpretInput(input);                                                                         puts("Exited interpretInput");
+    interpretInput(input);
+    unloadArgumentList();
+    printf("::Freed argument\n");
   }
   return 0;
 }
@@ -71,13 +75,15 @@ int main(int argc, char* argv[])
 void interpretInput(char input[])
 {
   int i, j, s=-1, n=0, t, quotes=0, isArg=0, fpnum=0, quitLoop=0;
-  char segment[256], arguments[10][256], name[256] argIsVar[10]={0,0,0,0,0,0,0,0,0,0};
+  char segment[256], arguments[10][256], name[256], argIsVar[10]={0,0,0,0,0,0,0,0,0,0};
   for (i=0; i<10; i++) 
     for (j=0; j<256; j++)
       arguments[i][j] = '\0';
-  j = 0;
+  i = 0; j = 0;
   
+  printf("::Entering SWS with i == %d\n", i);
   if (!skipWhiteSpace(&i, input)) return;
+  puts("::MARKER_START::");
   
   for (i=0; i<256; i++)
   {
@@ -137,6 +143,7 @@ void interpretInput(char input[])
                 /* get remainder of numbers */
               }
               name[n++] = '|';
+            }
             skipWhiteSpace(&i, input);
             j=0;
             i--;
@@ -179,7 +186,7 @@ void interpretInput(char input[])
   
   for (n=n; n<256; n++) name[n] = '\0';
   
-  argument = calloc(s, sizeof(Variable)); j = 0;
+  argument = calloc(s, sizeof(Variable)); j = 0; arg_count = s;
   for (i=0; i<256; i++)
   {
     if (name[i] == '\0') break;
@@ -210,50 +217,55 @@ void interpretInput(char input[])
         else
         {
           argument[j].name = (char*)malloc(4); strcpy(argument[j].name, "|%|");
-          argument[j].type = 2;
+          argument[j].type = 3;
           argument[j].vlen = 1;
           argument[j].fval = (double*)malloc(sizeof(double));       argument[j].fval[0] = atof(arguments[j]);
         }
         j++;
         break;
       case '$':
+        puts("::Argument is string");
         if (argIsVar[j])
         {
+          puts("::Detected as variable");
           t = findVariable(arguments[j]);
           copyVariable(&argument[j], variable[t]);
         }
         else
         {
+          puts("::Detected as raw");
+          printf("::arguments[%d] == \"%s\"\n", j, arguments[j]);
           argument[j].name = (char*)malloc(4);                      strcpy(argument[j].name, "|$|");
-          argument[j].type = 3;
+          argument[j].type = 4;
           argument[j].vlen = 1;
           argument[j].sval = (char*)malloc(strlen(arguments[j]+1)); strcpy(argument[j].sval, arguments[j]);
+          printf("::argument[%d].sval == \"%s\"\n", j, argument[j].sval);
         }
         j++;
         break;
        // The following cases would only show up if a variable was passed, so we know we have to do a copyVariable call.
        // In the event one of the passed arguments was supposed to be one of these types, but wasn't passed as a variable, we let runFunc handle it.
-       case '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9': //It's gotta be a non-symbol-bound type, doesn't quite matter which
-       case '^' || '&' || '*': //Not at all prelevant, but I find it funny these happen to be right next to each other on the keyboard :P
+       case '0' || '1' || '2' || '3' || '4' || '5' || '6' || '7' || '8' || '9' || '^' || '&' || '*':
          t = findVariable(arguments[j]);
          copyVariable(&argument[j], variable[t]);
          j++;
        break;
     }
   }
-  
+  printf("::argument[0].sval == \"%s\"\n", argument[0].sval);
   puts(name);
-  runFunc(name);                                                                                   puts("Ran function");
-  free(argument);                                                                                  puts("Freed argument");
+  runFunc(name);
+  puts("::Exited runFunc");
   return;
 }
 
 int skipWhiteSpace(int* i, const char string[])
 {
   int ni = *i;
-  while (string[ni++] == ' ') {}
+  while (string[ni++] == ' ') { printf("::::string[%d] == '%c'\n", ni - 1, string[ni-1]); }
   *i = ni - 1;
-  if (string[ni] == '\0') return 0;
+  printf("::::Returning with %d which is %s\n", *i, (string[*i]=='\0')? "null" : "not null");
+  if (string[*i] == '\0') return 0;
   return 1;
 }
 
@@ -261,6 +273,8 @@ void runFunc(const char name[])
 {
   int i, j, f=-1, a=0;
   Variable args[4];
+  
+  printf("::argument[0].sval == \"%s\"\n", argument[0].sval);
   
   for (i=0; i<var_count; i++)
     if ( !strcmp(variable[i].name, name) ) { f=i; break; }
@@ -279,16 +293,22 @@ void runFunc(const char name[])
           switch (variable[f].aval[i].argsT[j])
           {
             case 1: copyVariable(&args[a], variable[variable[f].aval[i].argsI[j]]); a++; break;
-            case 2: copyVariable(&args[a], argument[variable[f].aval[i].argsI[j]]); a++; break;
+            case 2: 
+              printf("::::Copying argument[%d], which has .sval == \"%s\", to args[%d]\n", variable[f].aval[i].argsI[j], argument[variable[f].aval[i].argsI[j]].sval, a);
+              copyVariable(&args[a], argument[variable[f].aval[i].argsI[j]]); a++;
+              printf("::::args[%d] == \"%s\"\n", a-1, args[a-1].sval);
+            break;
           }
         break;
     }
+    printf("::Running C with string %s\n", args[0].sval);
     runC(variable[f].aval[i].argsI[0], args);
+    printf("::Ran C\n");
   }
   return;
 }
 
-void copyVariable(Variable* dest, Variable src)
+void copyVariable(Variable* dest, const Variable src)
 {
   dest->name = src.name;
   dest->type = src.type;
@@ -297,10 +317,42 @@ void copyVariable(Variable* dest, Variable src)
   {
     case 1: case 2: dest->ival = src.ival; break; //byte, integer
     case 3:         dest->fval = src.fval; break; //floating-point
-    case 4: case 7: dest->sval = src.sval; break; //string, raw
+    case 4: case 7: 
+      printf("::::::Copying string: \"%s\"\n", src.sval);
+      dest->sval = src.sval;
+    break; //string, raw
     case 8:         dest->pval = src.pval; break; //pointer
     case 5:         dest->aval = src.aval; break; //function
     case 6:         dest->bval = src.bval; break; //streambuffer (FILE*)
   }
+  return;
+}
+
+int findVariable(const char name[])
+{
+  int i, f=-1;
+  for (i=0; i<var_count; i++)
+    if ( !strcmp(variable[i].name, name) ) { f = i; break; }
+  
+  return f;
+}
+
+void unloadArgumentList()
+{
+  int i;
+  for (i=0; i<arg_count; i++)
+  {
+    free(argument[i].name);
+    switch(argument[i].type)
+    {
+      case 1: case 4: case 7: free(argument[i].sval); break;
+      case 2:                 free(argument[i].ival); break;
+      case 3:                 free(argument[i].fval); break;
+      case 5:                 free(argument[i].aval); break;
+      case 6:                 free(argument[i].bval); break;
+    }
+  }
+  free(argument);
+  arg_count = 0;
   return;
 }
