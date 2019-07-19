@@ -25,7 +25,7 @@
 #include "structures.h"
 #include "runc.h"
 
-void interpretInput(char input[]);
+void interpretInput(const char input[], char *output);
 int skipWhiteSpace(int* i, const char string[]);
 void runFunc(const char name[]);
 void copyVariable(Variable* dest, Variable src);
@@ -41,7 +41,7 @@ int arg_count;
 
 int main(int argc, char* argv[])
 {
-  char input[256];
+  char input[256], *name;
   int  i;
   
   variable = calloc(1, sizeof(Variable));
@@ -59,20 +59,22 @@ int main(int argc, char* argv[])
   variable[0].aval[0].argsL     = 2;
   variable[0].aval[0].operation = 1;
   
-  printf("2Term v0.1.4i - IB2C interpreter\n");
+  printf("2Term v0.1.5i - IB2C interpreter\n");
   while (1)
   {
     for (i=0; i<256; i++) input[i] = '\0';
     printf("> ");
     gets(input);
-    interpretInput(input);
+    
+    interpretInput(input, name);
+    runFunc(name);
     unloadArgumentList();
     printf("::Freed argument\n");
   }
   return 0;
 }
 
-void interpretInput(char input[])
+void interpretInput(const char input[], char *output)
 {
   int i, j, s=-1, n=0, t, quotes=0, isArg=0, fpnum=0, quitLoop=0;
   char segment[256], arguments[10][256], name[256], argIsVar[10]={0,0,0,0,0,0,0,0,0,0};
@@ -254,8 +256,7 @@ void interpretInput(char input[])
   }
   printf("::argument[0].sval == \"%s\"\n", argument[0].sval);
   puts(name);
-  runFunc(name);
-  puts("::Exited runFunc");
+  output = name;
   return;
 }
 
