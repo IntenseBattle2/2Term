@@ -19,7 +19,7 @@ int      tpinfo[5];
 Variable runC(int index, Variable args[4])
 {
   switch (index){
-    case 0: retvar.ival = puts(args[0].sval); break; //int puts(const char *str)
+    case 0: retvar.ival = (int*)malloc(sizeof(int)); *retvar.ival = puts(args[0].sval); break; //int puts(const char *str)
   }
   return retvar;
 }
